@@ -7,6 +7,7 @@ function App() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
   const [showCheckout, setShowCheckout] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const [customer, setCustomer] = useState({
     name: "",
@@ -17,90 +18,128 @@ function App() {
 
   const [orderPlaced, setOrderPlaced] = useState(false);
 
-  // Get products from backend
+  // GET PRODUCTS FROM BACKEND
   useEffect(() => {
     fetch("http://localhost:5000/api/products")
-      .then((response) => response.json())
-      .then((data) => setProducts(data))
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Failed to fetch products");
+        }
+
+        return response.json();
+      })
+      .then((data) => {
+        console.log("Products received:", data);
+        setProducts(data);
+        setLoading(false);
+      })
       .catch((error) => {
         console.error("Error fetching products:", error);
+        setLoading(false);
       });
   }, []);
 
-  // Add product to cart
+  // ADD TO CART
   const addToCart = (product) => {
     setCart((currentCart) => {
-      const existing = currentCart.find((item) => item.id === product.id);
+      const existing = currentCart.find(
+        (item) => item.id === product.id
+      );
 
       if (existing) {
         return currentCart.map((item) =>
           item.id === product.id
-            ? { ...item, quantity: item.quantity + 1 }
+            ? {
+                ...item,
+                quantity: item.quantity + 1,
+              }
             : item
         );
       }
 
-      return [...currentCart, { ...product, quantity: 1 }];
+      return [
+        ...currentCart,
+        {
+          ...product,
+          quantity: 1,
+        },
+      ];
     });
   };
 
-  // Increase quantity
+  // INCREASE QUANTITY
   const increaseQuantity = (id) => {
     setCart((currentCart) =>
       currentCart.map((item) =>
         item.id === id
-          ? { ...item, quantity: item.quantity + 1 }
+          ? {
+              ...item,
+              quantity: item.quantity + 1,
+            }
           : item
       )
     );
   };
 
-  // Decrease quantity
+  // DECREASE QUANTITY
   const decreaseQuantity = (id) => {
     setCart((currentCart) =>
       currentCart
         .map((item) =>
           item.id === id
-            ? { ...item, quantity: item.quantity - 1 }
+            ? {
+                ...item,
+                quantity: item.quantity - 1,
+              }
             : item
         )
         .filter((item) => item.quantity > 0)
     );
   };
 
-  // Remove item
+  // REMOVE FROM CART
   const removeFromCart = (id) => {
     setCart((currentCart) =>
       currentCart.filter((item) => item.id !== id)
     );
   };
 
-  // Cart item count
+  // CART COUNT
   const cartCount = useMemo(() => {
-    return cart.reduce((total, item) => total + item.quantity, 0);
-  }, [cart]);
-
-  // Cart total
-  const cartTotal = useMemo(() => {
     return cart.reduce(
-      (total, item) => total + item.price * item.quantity,
+      (total, item) => total + item.quantity,
       0
     );
   }, [cart]);
 
-  // Filter products
+  // CART TOTAL
+  const cartTotal = useMemo(() => {
+    return cart.reduce(
+      (total, item) =>
+        total + Number(item.price) * item.quantity,
+      0
+    );
+  }, [cart]);
+
+  // FILTER PRODUCTS
   const filteredProducts = products.filter((product) => {
-    const matchesSearch = product.name
-      .toLowerCase()
-      .includes(search.toLowerCase());
+    const productName = String(product.name || "").toLowerCase();
+    const productCategory = String(
+      product.category || ""
+    );
+
+    const matchesSearch = productName.includes(
+      search.toLowerCase()
+    );
 
     const matchesCategory =
-      category === "All" || product.category === category;
+      category === "All" ||
+      productCategory === category;
 
     return matchesSearch && matchesCategory;
   });
 
-  // Customer input
+  // CUSTOMER INPUT
   const handleCustomerChange = (event) => {
     const { name, value } = event.target;
 
@@ -110,7 +149,7 @@ function App() {
     }));
   };
 
-  // Open checkout
+  // OPEN CHECKOUT
   const openCheckout = () => {
     if (cart.length === 0) {
       alert("Your cart is empty!");
@@ -120,7 +159,7 @@ function App() {
     setShowCheckout(true);
   };
 
-  // Place order
+  // PLACE ORDER
   const placeOrder = (event) => {
     event.preventDefault();
 
@@ -150,6 +189,7 @@ function App() {
 
       {/* HEADER */}
       <header className="header">
+
         <div className="logo">
           <h1>AMU</h1>
           <p>LUXURY FASHION • MEN & WOMEN</p>
@@ -158,71 +198,107 @@ function App() {
         <div className="cart-button">
           🛒 Cart ({cartCount})
         </div>
+
       </header>
 
       {/* HERO */}
       <section className="hero">
+
         <div className="hero-content">
+
           <h2>Luxury Fashion</h2>
-          <p>Discover premium fashion for men and women.</p>
+
+          <p>
+            Discover premium fashion for men and women.
+          </p>
 
           <button
             onClick={() =>
               document
                 .getElementById("products")
-                .scrollIntoView({ behavior: "smooth" })
+                .scrollIntoView({
+                  behavior: "smooth",
+                })
             }
           >
             SHOP NOW
           </button>
+
         </div>
+
       </section>
 
       {/* PRODUCTS */}
-      <section className="products-section" id="products">
+      <section
+        className="products-section"
+        id="products"
+      >
 
         <div className="section-heading">
-          <h2>Premium styles selected for you</h2>
-          <p>Find your perfect style</p>
+
+          <h2>
+            Premium styles selected for you
+          </h2>
+
+          <p>
+            Find your perfect style
+          </p>
+
         </div>
 
         {/* SEARCH */}
         <div className="search-box">
+
           <input
             type="text"
             placeholder="Search products..."
             value={search}
-            onChange={(event) => setSearch(event.target.value)}
+            onChange={(event) =>
+              setSearch(event.target.value)
+            }
           />
+
         </div>
 
         {/* CATEGORIES */}
         <div className="categories">
 
           <button
-            className={category === "All" ? "active" : ""}
+            className={
+              category === "All" ? "active" : ""
+            }
             onClick={() => setCategory("All")}
           >
             All
           </button>
 
           <button
-            className={category === "Men" ? "active" : ""}
+            className={
+              category === "Men" ? "active" : ""
+            }
             onClick={() => setCategory("Men")}
           >
             Men
           </button>
 
           <button
-            className={category === "Women" ? "active" : ""}
+            className={
+              category === "Women" ? "active" : ""
+            }
             onClick={() => setCategory("Women")}
           >
             Women
           </button>
 
           <button
-            className={category === "Accessories" ? "active" : ""}
-            onClick={() => setCategory("Accessories")}
+            className={
+              category === "Accessories"
+                ? "active"
+                : ""
+            }
+            onClick={() =>
+              setCategory("Accessories")
+            }
           >
             Accessories
           </button>
@@ -232,20 +308,43 @@ function App() {
         {/* PRODUCT GRID */}
         <div className="product-grid">
 
-          {filteredProducts.length === 0 ? (
-            <div className="no-products">
-              <h3>No products found</h3>
-              <p>Try another search or category.</p>
+          {loading ? (
+
+            <div className="loading">
+              <h3>Loading products...</h3>
+              <p>Please wait...</p>
             </div>
+
+          ) : filteredProducts.length === 0 ? (
+
+            <div className="no-products">
+
+              <h3>
+                No products found
+              </h3>
+
+              <p>
+                Try another search or category.
+              </p>
+
+            </div>
+
           ) : (
+
             filteredProducts.map((product) => (
-              <div className="product-card" key={product.id}>
+
+              <div
+                className="product-card"
+                key={product.id}
+              >
 
                 <div className="product-image">
+
                   <img
                     src={product.image}
                     alt={product.name}
                   />
+
                 </div>
 
                 <div className="product-info">
@@ -254,48 +353,80 @@ function App() {
                     {product.category}
                   </div>
 
-                  <h3>{product.name}</h3>
+                  <h3>
+                    {product.name}
+                  </h3>
 
                   <div className="price">
-                    ₹{product.price.toLocaleString("en-IN")}
+                    ₹
+                    {Number(
+                      product.price
+                    ).toLocaleString("en-IN")}
                   </div>
 
                   <button
                     className="add-cart"
-                    onClick={() => addToCart(product)}
+                    onClick={() =>
+                      addToCart(product)
+                    }
                   >
                     Add to Cart
                   </button>
 
                 </div>
+
               </div>
+
             ))
+
           )}
 
         </div>
+
       </section>
 
       {/* CART */}
       <section className="cart-section">
 
         <div className="section-heading">
-          <h2>Your Shopping Cart</h2>
-          <p>{cartCount} item(s) in your cart</p>
+
+          <h2>
+            Your Shopping Cart
+          </h2>
+
+          <p>
+            {cartCount} item(s) in your cart
+          </p>
+
         </div>
 
         {cart.length === 0 ? (
+
           <div className="empty-cart">
-            <h3>Your cart is empty 🛒</h3>
-            <p>Add some products to continue shopping.</p>
+
+            <h3>
+              Your cart is empty 🛒
+            </h3>
+
+            <p>
+              Add some products to continue shopping.
+            </p>
+
           </div>
+
         ) : (
+
           <div className="cart-container">
 
             {/* CART ITEMS */}
             <div className="cart-items">
 
               {cart.map((item) => (
-                <div className="cart-item" key={item.id}>
+
+                <div
+                  className="cart-item"
+                  key={item.id}
+                >
 
                   <img
                     src={item.image}
@@ -304,24 +435,35 @@ function App() {
 
                   <div className="cart-details">
 
-                    <h3>{item.name}</h3>
+                    <h3>
+                      {item.name}
+                    </h3>
 
                     <p>
-                      ₹{item.price.toLocaleString("en-IN")}
+                      ₹
+                      {Number(
+                        item.price
+                      ).toLocaleString("en-IN")}
                     </p>
 
                     <div className="quantity">
 
                       <button
-                        onClick={() => decreaseQuantity(item.id)}
+                        onClick={() =>
+                          decreaseQuantity(item.id)
+                        }
                       >
                         -
                       </button>
 
-                      <span>{item.quantity}</span>
+                      <span>
+                        {item.quantity}
+                      </span>
 
                       <button
-                        onClick={() => increaseQuantity(item.id)}
+                        onClick={() =>
+                          increaseQuantity(item.id)
+                        }
                       >
                         +
                       </button>
@@ -332,12 +474,15 @@ function App() {
 
                   <button
                     className="remove-button"
-                    onClick={() => removeFromCart(item.id)}
+                    onClick={() =>
+                      removeFromCart(item.id)
+                    }
                   >
                     Remove
                   </button>
 
                 </div>
+
               ))}
 
             </div>
@@ -345,30 +490,62 @@ function App() {
             {/* CART SUMMARY */}
             <div className="cart-summary">
 
-              <h2>Order Summary</h2>
+              <h2>
+                Order Summary
+              </h2>
 
               <div className="summary-row">
-                <span>Items</span>
-                <span>{cartCount}</span>
-              </div>
 
-              <div className="summary-row">
-                <span>Subtotal</span>
                 <span>
-                  ₹{cartTotal.toLocaleString("en-IN")}
+                  Items
                 </span>
+
+                <span>
+                  {cartCount}
+                </span>
+
               </div>
 
               <div className="summary-row">
-                <span>Delivery</span>
-                <span>FREE</span>
+
+                <span>
+                  Subtotal
+                </span>
+
+                <span>
+                  ₹
+                  {cartTotal.toLocaleString(
+                    "en-IN"
+                  )}
+                </span>
+
+              </div>
+
+              <div className="summary-row">
+
+                <span>
+                  Delivery
+                </span>
+
+                <span>
+                  FREE
+                </span>
+
               </div>
 
               <div className="summary-row total">
-                <span>Total</span>
+
                 <span>
-                  ₹{cartTotal.toLocaleString("en-IN")}
+                  Total
                 </span>
+
+                <span>
+                  ₹
+                  {cartTotal.toLocaleString(
+                    "en-IN"
+                  )}
+                </span>
+
               </div>
 
               <button
@@ -381,38 +558,53 @@ function App() {
             </div>
 
           </div>
+
         )}
 
       </section>
 
       {/* CHECKOUT MODAL */}
       {showCheckout && (
+
         <div
           className="checkout-overlay"
-          onClick={() => setShowCheckout(false)}
+          onClick={() =>
+            setShowCheckout(false)
+          }
         >
 
           <div
             className="checkout-modal"
-            onClick={(event) => event.stopPropagation()}
+            onClick={(event) =>
+              event.stopPropagation()
+            }
           >
 
             <button
               className="close-checkout"
-              onClick={() => setShowCheckout(false)}
+              onClick={() =>
+                setShowCheckout(false)
+              }
             >
               ×
             </button>
 
-            <h2>Checkout</h2>
+            <h2>
+              Checkout
+            </h2>
 
             <p className="checkout-total">
-              Total Amount: ₹{cartTotal.toLocaleString("en-IN")}
+              Total Amount: ₹
+              {cartTotal.toLocaleString(
+                "en-IN"
+              )}
             </p>
 
             <form onSubmit={placeOrder}>
 
-              <label>Full Name</label>
+              <label>
+                Full Name
+              </label>
 
               <input
                 type="text"
@@ -422,7 +614,9 @@ function App() {
                 onChange={handleCustomerChange}
               />
 
-              <label>Phone Number</label>
+              <label>
+                Phone Number
+              </label>
 
               <input
                 type="tel"
@@ -432,7 +626,9 @@ function App() {
                 onChange={handleCustomerChange}
               />
 
-              <label>Delivery Address</label>
+              <label>
+                Delivery Address
+              </label>
 
               <textarea
                 name="address"
@@ -442,13 +638,16 @@ function App() {
                 rows="4"
               />
 
-              <label>Payment Method</label>
+              <label>
+                Payment Method
+              </label>
 
               <select
                 name="payment"
                 value={customer.payment}
                 onChange={handleCustomerChange}
               >
+
                 <option value="Cash on Delivery">
                   Cash on Delivery
                 </option>
@@ -460,6 +659,7 @@ function App() {
                 <option value="Card">
                   Credit / Debit Card
                 </option>
+
               </select>
 
               <button
@@ -474,17 +674,23 @@ function App() {
           </div>
 
         </div>
+
       )}
 
       {/* SUCCESS MESSAGE */}
       {orderPlaced && (
+
         <div className="success-overlay">
 
           <div className="success-box">
 
-            <div className="success-icon">✓</div>
+            <div className="success-icon">
+              ✓
+            </div>
 
-            <h2>Order Placed Successfully!</h2>
+            <h2>
+              Order Placed Successfully!
+            </h2>
 
             <p>
               Thank you for shopping with AMU.
@@ -495,7 +701,9 @@ function App() {
             </p>
 
             <button
-              onClick={() => setOrderPlaced(false)}
+              onClick={() =>
+                setOrderPlaced(false)
+              }
             >
               Continue Shopping
             </button>
@@ -503,13 +711,24 @@ function App() {
           </div>
 
         </div>
+
       )}
 
       {/* FOOTER */}
       <footer className="footer">
-        <h2>AMU</h2>
-        <p>Luxury Fashion • Men & Women</p>
-        <p>© 2026 AMU. All rights reserved.</p>
+
+        <h2>
+          AMU
+        </h2>
+
+        <p>
+          Luxury Fashion • Men & Women
+        </p>
+
+        <p>
+          © 2026 AMU. All rights reserved.
+        </p>
+
       </footer>
 
     </div>
